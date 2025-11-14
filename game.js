@@ -8,6 +8,7 @@ class Game {
         this.selectedItem = null;
         this.currentAction = 'examine';
         this.gameState = {};
+        this.animationFrame = 0;
 
         this.descriptionText = document.getElementById('description-text');
         this.currentRoomText = document.getElementById('current-room');
@@ -15,7 +16,16 @@ class Game {
 
         this.setupEventListeners();
         this.loadRoom('entrance');
-        this.render();
+        this.startAnimation();
+    }
+
+    startAnimation() {
+        const animate = () => {
+            this.animationFrame++;
+            this.render();
+            requestAnimationFrame(animate);
+        };
+        animate();
     }
 
     setupEventListeners() {
@@ -76,6 +86,17 @@ class Game {
 
     getObjectAtPosition(x, y) {
         if (!this.currentRoom) return null;
+
+        // Проверяем персонажей
+        if (this.currentRoom.characters) {
+            for (let char of this.currentRoom.characters) {
+                if (!char.visible) continue;
+                if (x >= char.x && x <= char.x + char.width &&
+                    y >= char.y && y <= char.y + char.height) {
+                    return char;
+                }
+            }
+        }
 
         // Проверяем все объекты в комнате
         for (let obj of this.currentRoom.objects) {
@@ -255,16 +276,24 @@ class Game {
 
         if (!this.currentRoom) return;
 
+        // Рисуем ночное небо (для комнат с окнами)
+        this.drawNightSky();
+
         // Рисуем фон комнаты
-        ctx.fillStyle = this.currentRoom.backgroundColor || '#1a1a1a';
+        ctx.fillStyle = this.currentRoom.backgroundColor || '#0a0a15';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         // Рисуем пол
-        ctx.fillStyle = this.currentRoom.floorColor || '#2a2a2a';
+        ctx.fillStyle = this.currentRoom.floorColor || '#1a1a25';
         ctx.fillRect(0, canvas.height * 0.7, canvas.width, canvas.height * 0.3);
 
-        // Рисуем стены
-        this.drawWalls();
+        // Рисуем стены замка
+        this.drawCastleWalls();
+
+        // Рисуем окно с луной (если есть)
+        if (this.currentRoom.hasWindow) {
+            this.drawWindow();
+        }
 
         // Рисуем объекты
         this.currentRoom.objects.forEach(obj => {
@@ -273,18 +302,42 @@ class Game {
             }
         });
 
+        // Рисуем персонажей
+        if (this.currentRoom.characters) {
+            this.currentRoom.characters.forEach(char => {
+                if (char.visible) {
+                    this.drawAnimeCharacter(char);
+                }
+            });
+        }
+
         // Рисуем выходы
         this.currentRoom.exits.forEach(exit => {
             this.drawExit(exit);
         });
     }
 
-    drawWalls() {
+    drawNightSky() {
         const ctx = this.ctx;
         const canvas = this.canvas;
 
-        // Левая стена
-        ctx.fillStyle = '#3a3a3a';
+        // Градиент ночного неба
+        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.5);
+        gradient.addColorStop(0, '#0a0a20');
+        gradient.addColorStop(1, '#1a1a30');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height * 0.5);
+    }
+
+    drawCastleWalls() {
+        const ctx = this.ctx;
+        const canvas = this.canvas;
+
+        // Левая стена замка с каменной текстурой
+        const leftGradient = ctx.createLinearGradient(0, 0, 150, 0);
+        leftGradient.addColorStop(0, '#2a2a40');
+        leftGradient.addColorStop(1, '#3a3a50');
+        ctx.fillStyle = leftGradient;
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.lineTo(150, canvas.height * 0.3);
@@ -293,7 +346,22 @@ class Game {
         ctx.closePath();
         ctx.fill();
 
-        // Правая стена
+        // Каменные блоки на левой стене
+        ctx.strokeStyle = '#1a1a30';
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 10; i++) {
+            const y = i * 60;
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(150, canvas.height * 0.3 + (y * 0.4));
+            ctx.stroke();
+        }
+
+        // Правая стена замка
+        const rightGradient = ctx.createLinearGradient(canvas.width - 150, 0, canvas.width, 0);
+        rightGradient.addColorStop(0, '#3a3a50');
+        rightGradient.addColorStop(1, '#2a2a40');
+        ctx.fillStyle = rightGradient;
         ctx.beginPath();
         ctx.moveTo(canvas.width, 0);
         ctx.lineTo(canvas.width - 150, canvas.height * 0.3);
@@ -302,9 +370,273 @@ class Game {
         ctx.closePath();
         ctx.fill();
 
-        // Задняя стена
-        ctx.fillStyle = '#4a4a4a';
+        // Каменные блоки на правой стене
+        for (let i = 0; i < 10; i++) {
+            const y = i * 60;
+            ctx.beginPath();
+            ctx.moveTo(canvas.width, y);
+            ctx.lineTo(canvas.width - 150, canvas.height * 0.3 + (y * 0.4));
+            ctx.stroke();
+        }
+
+        // Задняя стена замка
+        const backGradient = ctx.createLinearGradient(0, canvas.height * 0.3, 0, canvas.height * 0.7);
+        backGradient.addColorStop(0, '#4a4a60');
+        backGradient.addColorStop(1, '#3a3a50');
+        ctx.fillStyle = backGradient;
         ctx.fillRect(150, canvas.height * 0.3, canvas.width - 300, canvas.height * 0.4);
+
+        // Горизонтальные линии кирпичей
+        ctx.strokeStyle = '#2a2a40';
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 5; i++) {
+            const y = canvas.height * 0.3 + (i * 48);
+            ctx.beginPath();
+            ctx.moveTo(150, y);
+            ctx.lineTo(canvas.width - 150, y);
+            ctx.stroke();
+        }
+
+        // Вертикальные линии кирпичей
+        for (let i = 0; i < 8; i++) {
+            const x = 150 + (i * 80);
+            ctx.beginPath();
+            ctx.moveTo(x, canvas.height * 0.3);
+            ctx.lineTo(x, canvas.height * 0.7);
+            ctx.stroke();
+        }
+    }
+
+    drawWindow() {
+        const ctx = this.ctx;
+        const canvas = this.canvas;
+
+        const winX = canvas.width / 2 - 80;
+        const winY = canvas.height * 0.35;
+        const winW = 160;
+        const winH = 140;
+
+        // Арка окна
+        ctx.fillStyle = '#0a0a20';
+        ctx.beginPath();
+        ctx.arc(winX + winW / 2, winY + winH / 2, winW / 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Небо в окне с градиентом
+        const skyGradient = ctx.createRadialGradient(
+            winX + winW / 2, winY + winH / 2, 10,
+            winX + winW / 2, winY + winH / 2, winW / 2
+        );
+        skyGradient.addColorStop(0, '#1a1a40');
+        skyGradient.addColorStop(1, '#0a0a20');
+        ctx.fillStyle = skyGradient;
+        ctx.beginPath();
+        ctx.arc(winX + winW / 2, winY + winH / 2, winW / 2 - 10, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Луна
+        const moonX = winX + winW / 2 + 20;
+        const moonY = winY + 40;
+        ctx.fillStyle = '#f0f0a0';
+        ctx.shadowColor = '#f0f0a0';
+        ctx.shadowBlur = 20;
+        ctx.beginPath();
+        ctx.arc(moonX, moonY, 25, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Кратеры на луне
+        ctx.fillStyle = '#e0e090';
+        ctx.beginPath();
+        ctx.arc(moonX - 8, moonY - 5, 4, 0, Math.PI * 2);
+        ctx.arc(moonX + 5, moonY + 3, 3, 0, Math.PI * 2);
+        ctx.arc(moonX - 3, moonY + 8, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Звезды в окне
+        ctx.fillStyle = '#ffffff';
+        const stars = [
+            [winX + 30, winY + 30],
+            [winX + 130, winY + 40],
+            [winX + 50, winY + 100],
+            [winX + 120, winY + 110],
+            [winX + 80, winY + 120]
+        ];
+
+        stars.forEach(([x, y]) => {
+            const twinkle = Math.sin(this.animationFrame * 0.05 + x + y) * 0.5 + 0.5;
+            ctx.globalAlpha = 0.5 + twinkle * 0.5;
+            ctx.beginPath();
+            ctx.arc(x, y, 2, 0, Math.PI * 2);
+            ctx.fill();
+            // Крестообразное свечение
+            ctx.fillRect(x - 4, y - 0.5, 8, 1);
+            ctx.fillRect(x - 0.5, y - 4, 1, 8);
+        });
+        ctx.globalAlpha = 1;
+
+        // Рама окна
+        ctx.strokeStyle = '#5a5a70';
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.arc(winX + winW / 2, winY + winH / 2, winW / 2, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Крест рамы
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(winX + winW / 2, winY);
+        ctx.lineTo(winX + winW / 2, winY + winH);
+        ctx.moveTo(winX, winY + winH / 2);
+        ctx.lineTo(winX + winW, winY + winH / 2);
+        ctx.stroke();
+    }
+
+    drawAnimeCharacter(char) {
+        const ctx = this.ctx;
+        const x = char.x;
+        const y = char.y;
+        const scale = char.scale || 1;
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+
+        // Тень персонажа
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.beginPath();
+        ctx.ellipse(25, 145, 20, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Ноги
+        ctx.fillStyle = char.clothesColor || '#2a2a50';
+        ctx.fillRect(15, 100, 8, 35);
+        ctx.fillRect(27, 100, 8, 35);
+
+        // Обувь
+        ctx.fillStyle = '#1a1a30';
+        ctx.fillRect(13, 133, 12, 8);
+        ctx.fillRect(25, 133, 12, 8);
+
+        // Тело (платье/одежда)
+        ctx.fillStyle = char.clothesColor || '#2a2a50';
+        ctx.beginPath();
+        ctx.moveTo(25, 50);
+        ctx.lineTo(10, 55);
+        ctx.lineTo(5, 100);
+        ctx.lineTo(45, 100);
+        ctx.lineTo(40, 55);
+        ctx.closePath();
+        ctx.fill();
+
+        // Акценты на одежде
+        ctx.strokeStyle = char.accentColor || '#4a4a70';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(15, 70);
+        ctx.lineTo(35, 70);
+        ctx.stroke();
+
+        // Руки
+        ctx.fillStyle = char.skinColor || '#ffd5b4';
+        // Левая рука
+        ctx.fillRect(3, 55, 7, 30);
+        ctx.beginPath();
+        ctx.arc(6.5, 87, 5, 0, Math.PI * 2);
+        ctx.fill();
+        // Правая рука
+        ctx.fillRect(40, 55, 7, 30);
+        ctx.beginPath();
+        ctx.arc(43.5, 87, 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Шея
+        ctx.fillStyle = char.skinColor || '#ffd5b4';
+        ctx.fillRect(20, 45, 10, 8);
+
+        // Голова
+        ctx.fillStyle = char.skinColor || '#ffd5b4';
+        ctx.beginPath();
+        ctx.arc(25, 28, 18, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Волосы
+        ctx.fillStyle = char.hairColor || '#4a2a2a';
+
+        // Основная прическа
+        ctx.beginPath();
+        ctx.arc(25, 23, 19, Math.PI, Math.PI * 2);
+        ctx.arc(15, 25, 12, 0, Math.PI * 2);
+        ctx.arc(35, 25, 12, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Челка
+        ctx.beginPath();
+        ctx.moveTo(10, 20);
+        ctx.quadraticCurveTo(15, 15, 18, 22);
+        ctx.quadraticCurveTo(22, 15, 25, 22);
+        ctx.quadraticCurveTo(28, 15, 32, 22);
+        ctx.quadraticCurveTo(35, 15, 40, 20);
+        ctx.lineTo(40, 25);
+        ctx.lineTo(10, 25);
+        ctx.closePath();
+        ctx.fill();
+
+        // Лицо - глаза (аниме стиль)
+        ctx.fillStyle = '#ffffff';
+        // Левый глаз
+        ctx.beginPath();
+        ctx.ellipse(18, 28, 4, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Правый глаз
+        ctx.beginPath();
+        ctx.ellipse(32, 28, 4, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Зрачки
+        ctx.fillStyle = char.eyeColor || '#4a4aff';
+        ctx.beginPath();
+        ctx.arc(18, 28, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(32, 28, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Блики в глазах (аниме эффект)
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(19, 26, 1.5, 0, Math.PI * 2);
+        ctx.arc(33, 26, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Нос
+        ctx.strokeStyle = '#d0a090';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(25, 32);
+        ctx.lineTo(26, 34);
+        ctx.stroke();
+
+        // Рот (улыбка)
+        ctx.strokeStyle = '#c08080';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(25, 36, 5, 0.2, Math.PI - 0.2);
+        ctx.stroke();
+
+        // Румянец
+        ctx.fillStyle = 'rgba(255, 150, 150, 0.3)';
+        ctx.beginPath();
+        ctx.ellipse(13, 34, 4, 3, 0, 0, Math.PI * 2);
+        ctx.ellipse(37, 34, 4, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Имя персонажа
+        ctx.restore();
+        ctx.fillStyle = '#f0f0f0';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(char.name, x + 25, y - 10);
     }
 
     drawObject(obj) {
@@ -362,22 +694,53 @@ class Game {
 // Определение комнат и объектов
 const rooms = {
     entrance: {
-        name: 'Прихожая',
-        description: 'Вы стоите в темной прихожей старого особняка. Пыль танцует в лучах света.',
-        backgroundColor: '#1a1a1a',
-        floorColor: '#2a2a2a',
+        name: 'Прихожая Замка',
+        description: 'Вы в прихожей древнего замка. Лунный свет льется через круглое окно, освещая каменные стены.',
+        backgroundColor: '#0a0a15',
+        floorColor: '#1a1a25',
+        hasWindow: true,
+        characters: [
+            {
+                type: 'character',
+                id: 'mysterious_girl',
+                name: 'Юки',
+                x: 550,
+                y: 330,
+                width: 50,
+                height: 150,
+                scale: 1.2,
+                visible: true,
+                canTake: false,
+                hairColor: '#8a2be2',
+                eyeColor: '#ff69b4',
+                skinColor: '#ffe0cc',
+                clothesColor: '#4a0080',
+                accentColor: '#8a2be2',
+                description: 'Таинственная девушка с фиолетовыми волосами. Она улыбается вам.',
+                dialogue: [
+                    'Добро пожаловать в древний замок! Я здесь хранительница.',
+                    'Говорят, здесь спрятано великое сокровище...',
+                    'Будьте осторожны в библиотеке - там много секретов!'
+                ],
+                currentDialogue: 0,
+                onExamine: function(game) {
+                    game.updateDescription(this.dialogue[this.currentDialogue]);
+                    this.currentDialogue = (this.currentDialogue + 1) % this.dialogue.length;
+                }
+            }
+        ],
         objects: [
             {
                 id: 'table',
-                name: 'Стол',
+                name: 'Старинный Стол',
                 x: 300,
                 y: 350,
                 width: 120,
                 height: 80,
-                color: '#8b7355',
+                color: '#3a2a50',
                 visible: true,
                 canTake: false,
-                description: 'Старый деревянный стол. На нем лежит какой-то предмет.',
+                description: 'Древний деревянный стол с резными узорами. На нем лежит что-то блестящее.',
             },
             {
                 id: 'key',
@@ -387,22 +750,22 @@ const rooms = {
                 y: 340,
                 width: 40,
                 height: 20,
-                color: '#d4af37',
+                color: '#ffd700',
                 visible: true,
                 canTake: true,
-                description: 'Старый латунный ключ. Интересно, от чего он?',
+                description: 'Золотистый старинный ключ с магическими рунами.',
             },
             {
-                id: 'painting',
-                name: 'Картина',
-                x: 500,
-                y: 250,
-                width: 100,
-                height: 120,
-                color: '#6a5a45',
+                id: 'armor',
+                name: 'Доспехи',
+                x: 240,
+                y: 280,
+                width: 60,
+                height: 140,
+                color: '#5a5a7a',
                 visible: true,
                 canTake: false,
-                description: 'Портрет строгого джентльмена. Его глаза словно следят за вами.',
+                description: 'Рыцарские доспехи стоят у стены. Они выглядят очень старыми.',
             }
         ],
         exits: [
@@ -414,84 +777,116 @@ const rooms = {
                 y: 300,
                 width: 80,
                 height: 140,
-                color: '#5a4a3a',
+                color: '#3a2a50',
             }
         ]
     },
 
     library: {
-        name: 'Библиотека',
-        description: 'Огромная библиотека с полками от пола до потолка. Пахнет старыми книгами.',
-        backgroundColor: '#1a1515',
-        floorColor: '#2a2020',
+        name: 'Библиотека Замка',
+        description: 'Огромная библиотека замка. Древние книги хранят тайны веков. Луна светит через витражное окно.',
+        backgroundColor: '#0a0a18',
+        floorColor: '#15152a',
+        hasWindow: true,
+        characters: [
+            {
+                type: 'character',
+                id: 'librarian',
+                name: 'Айка',
+                x: 180,
+                y: 360,
+                width: 50,
+                height: 150,
+                scale: 1.0,
+                visible: true,
+                canTake: false,
+                hairColor: '#cd853f',
+                eyeColor: '#32cd32',
+                skinColor: '#ffd5b4',
+                clothesColor: '#2a4a2a',
+                accentColor: '#4a6a4a',
+                description: 'Библиотекарша замка. У нее умные зеленые глаза.',
+                dialogue: [
+                    'Добро пожаловать в древнюю библиотеку!',
+                    'Здесь хранятся знания тысячелетий...',
+                    'Ищешь сокровище? Используй мудрость, не силу.',
+                    'Изумруд откроет путь к тому, что ты ищешь.'
+                ],
+                currentDialogue: 0,
+                onExamine: function(game) {
+                    game.updateDescription(this.dialogue[this.currentDialogue]);
+                    this.currentDialogue = (this.currentDialogue + 1) % this.dialogue.length;
+                }
+            }
+        ],
         objects: [
             {
                 id: 'bookshelf',
-                name: 'Книжная полка',
-                x: 250,
+                name: 'Древняя Книжная Полка',
+                x: 420,
                 y: 280,
                 width: 150,
                 height: 180,
-                color: '#6a4a3a',
+                color: '#3a2a50',
                 visible: true,
                 canTake: false,
-                description: 'Массивная книжная полка. Одна книга выглядит необычно.',
+                description: 'Массивная книжная полка с древними фолиантами. Одна книга светится магическим светом.',
                 useWith: {
                     'feather': {
-                        message: 'Вы смахнули пыль пером. За книгой что-то блестит!',
+                        message: 'Вы смахнули пыль магическим пером. Книги раздвинулись, открыв сверкающий изумруд!',
                         makeVisible: 'gem',
                     }
                 }
             },
             {
                 id: 'gem',
-                name: 'Драгоценный камень',
+                name: 'Магический Изумруд',
                 inventoryName: 'Изумруд',
-                x: 320,
+                x: 470,
                 y: 350,
                 width: 30,
                 height: 30,
-                color: '#50C878',
+                color: '#00ff7f',
                 visible: false,
                 canTake: true,
-                description: 'Сверкающий изумруд. Очень ценная вещь!',
+                description: 'Сверкающий изумруд с магической аурой. Он пульсирует таинственным светом!',
             },
             {
                 id: 'desk',
-                name: 'Письменный стол',
-                x: 480,
+                name: 'Старинный Секретер',
+                x: 280,
                 y: 360,
-                width: 140,
+                width: 120,
                 height: 100,
-                color: '#8b6a55',
+                color: '#4a3a60',
                 visible: true,
                 canTake: false,
-                description: 'Старый письменный стол с запертым ящиком.',
+                description: 'Древний письменный стол с запертым ящиком. На нем выгравированы магические руны.',
                 useWith: {
                     'old_key': {
-                        message: 'Ключ подходит! В ящике лежит перо.',
-                        addItem: { id: 'feather', name: 'Перо' },
+                        message: 'Ключ подходит к замку! Ящик открылся, внутри лежит волшебное перо феникса.',
+                        addItem: { id: 'feather', name: 'Перо Феникса' },
                         setState: { deskUnlocked: true }
                     }
                 }
             },
             {
                 id: 'locked_chest',
-                name: 'Сундук',
-                x: 550,
+                name: 'Сундук Сокровищ',
+                x: 600,
                 y: 400,
                 width: 100,
                 height: 70,
-                color: '#5a4a3a',
+                color: '#6a4a00',
                 visible: true,
                 canTake: false,
-                description: 'Запертый сундук. На нем углубление в форме драгоценного камня.',
+                description: 'Древний сундук с золотой отделкой. На крышке углубление в форме драгоценного камня.',
                 useWith: {
                     'emerald': {
-                        message: '🎉 Поздравляем! Вы открыли сундук и нашли сокровище! Игра пройдена!',
+                        message: '✨ Магический изумруд засиял! Сундук открылся, показав легендарное сокровище замка! ✨',
                         callback: (game) => {
                             setTimeout(() => {
-                                alert('🎉 Победа! Вы разгадали тайну старого особняка!\n\nСпасибо за игру!');
+                                alert('🎉 Поздравляем! Вы нашли легендарное сокровище древнего замка!\n\n✨ Тайна разгадана! ✨\n\nСпасибо за игру!');
                             }, 500);
                         }
                     }
@@ -507,51 +902,95 @@ const rooms = {
                 y: 300,
                 width: 80,
                 height: 140,
-                color: '#5a4a3a',
+                color: '#3a2a50',
             },
             {
                 type: 'exit',
-                name: 'Секретная комната',
+                name: 'Секретная Комната',
                 to: 'secret',
                 x: 650,
                 y: 290,
                 width: 70,
                 height: 130,
-                color: '#4a3a2a',
+                color: '#2a1a40',
             }
         ]
     },
 
     secret: {
-        name: 'Секретная комната',
-        description: 'Маленькая секретная комната. Здесь хранились важные вещи.',
-        backgroundColor: '#151515',
-        floorColor: '#252525',
+        name: 'Секретная Башня',
+        description: 'Таинственная башня замка. Звезды ярко светят через открытое окно. Здесь царит магическая атмосфера.',
+        backgroundColor: '#050510',
+        floorColor: '#0a0a20',
+        hasWindow: true,
+        characters: [
+            {
+                type: 'character',
+                id: 'ghost_girl',
+                name: 'Рей',
+                x: 450,
+                y: 330,
+                width: 50,
+                height: 150,
+                scale: 1.1,
+                visible: true,
+                canTake: false,
+                hairColor: '#e0e0ff',
+                eyeColor: '#b0c4de',
+                skinColor: '#f0f0ff',
+                clothesColor: '#6a5acd',
+                accentColor: '#9370db',
+                description: 'Призрачная девушка со светлыми волосами. Она выглядит дружелюбно.',
+                dialogue: [
+                    'Привет... Я дух этого замка.',
+                    'Я охраняю сокровище уже много веков...',
+                    'Эта записка поможет тебе. Удачи, путник!',
+                    'Помни: изумруд - ключ к сокровищу.'
+                ],
+                currentDialogue: 0,
+                onExamine: function(game) {
+                    game.updateDescription(this.dialogue[this.currentDialogue]);
+                    this.currentDialogue = (this.currentDialogue + 1) % this.dialogue.length;
+                }
+            }
+        ],
         objects: [
             {
                 id: 'safe',
-                name: 'Сейф',
-                x: 350,
+                name: 'Магический Сейф',
+                x: 280,
                 y: 320,
                 width: 100,
                 height: 120,
-                color: '#4a4a4a',
+                color: '#5a5a8a',
                 visible: true,
                 canTake: false,
-                description: 'Старый сейф. Он приоткрыт.',
+                description: 'Древний сейф с магическими печатями. Он слегка приоткрыт.',
             },
             {
                 id: 'note',
-                name: 'Записка',
+                name: 'Древняя Записка',
                 inventoryName: 'Записка',
-                x: 370,
+                x: 300,
                 y: 350,
                 width: 60,
                 height: 40,
-                color: '#f0e68c',
+                color: '#ffe4b5',
                 visible: true,
                 canTake: true,
-                description: 'Записка гласит: "Изумруд откроет путь к сокровищу в библиотеке".',
+                description: 'Записка светится магическим светом: "Магический изумруд откроет путь к легендарному сокровищу в библиотеке замка."',
+            },
+            {
+                id: 'crystal',
+                name: 'Кристалл',
+                x: 580,
+                y: 300,
+                width: 40,
+                height: 60,
+                color: '#9370db',
+                visible: true,
+                canTake: false,
+                description: 'Светящийся магический кристалл. Он излучает мягкое фиолетовое свечение.',
             }
         ],
         exits: [
@@ -563,7 +1002,7 @@ const rooms = {
                 y: 300,
                 width: 80,
                 height: 140,
-                color: '#5a4a3a',
+                color: '#3a2a50',
             }
         ]
     }
