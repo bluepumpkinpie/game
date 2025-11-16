@@ -1,0 +1,12 @@
+[gd_scene load_steps=3 format=3 uid="uid://c4xj5vy6wncfj"]
+
+[ext_resource type="PackedScene" uid="uid://dqkobkcb4r2xi" path="res://scenes/rooms/Entrance.tscn" id="1_entrance"]
+[ext_resource type="PackedScene" uid="uid://bm7iw5g32rqvo" path="res://scenes/ui/UI.tscn" id="2_ui"]
+
+[node name="Main" type="Node"]
+
+[node name="CurrentRoom" type="Node2D" parent="."]
+
+[node name="Entrance" parent="CurrentRoom" instance=ExtResource("1_entrance")]
+
+[node name="UI" parent="." instance=ExtResource("2_ui")]

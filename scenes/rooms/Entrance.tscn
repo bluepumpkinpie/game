@@ -1,0 +1,24 @@
+[gd_scene load_steps=3 format=3 uid="uid://dqkobkcb4r2xi"]
+
+[ext_resource type="Script" path="res://scripts/Room.gd" id="1_room"]
+[ext_resource type="Script" path="res://scripts/AnimeCharacter.gd" id="2_character"]
+
+[node name="Entrance" type="Node2D"]
+script = ExtResource("1_room")
+room_name = "Прихожая Замка"
+room_description = "Вы в прихожей древнего замка. Лунный свет льется через круглое окно, освещая каменные стены."
+has_window = true
+
+[node name="YukiCharacter" type="Node2D" parent="."]
+position = Vector2(880, 420)
+script = ExtResource("2_character")
+character_name = "Юки"
+character_id = "yuki"
+description = "Таинственная девушка с фиолетовыми волосами. Она улыбается вам."
+dialogues = Array[String](["Добро пожаловать в древний замок! Я здесь хранительница.", "Говорят, здесь спрятано великое сокровище...", "Будьте осторожны в библиотеке - там много секретов!"])
+character_scale = 1.2
+hair_color = Color(0.541176, 0.168627, 0.886275, 1)
+eye_color = Color(1, 0.411765, 0.705882, 1)
+skin_color = Color(1, 0.878431, 0.8, 1)
+clothes_color = Color(0.290196, 0, 0.501961, 1)
+accent_color = Color(0.541176, 0.168627, 0.886275, 1)

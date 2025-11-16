@@ -1,0 +1,6 @@
+<svg width="128" height="128" xmlns="http://www.w3.org/2000/svg">
+  <rect width="128" height="128" fill="#2a1a50"/>
+  <circle cx="64" cy="40" r="20" fill="#f0f0a0"/>
+  <text x="64" y="90" font-size="24" fill="#8a2be2" text-anchor="middle" font-weight="bold">✨</text>
+  <text x="64" y="115" font-size="12" fill="#c0c0ff" text-anchor="middle">Castle</text>
+</svg>

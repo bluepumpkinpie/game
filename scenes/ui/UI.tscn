@@ -1,0 +1,91 @@
+[gd_scene load_steps=2 format=3 uid="uid://bm7iw5g32rqvo"]
+
+[ext_resource type="Script" path="res://scripts/UI.gd" id="1_ui_script"]
+
+[node name="UI" type="CanvasLayer"]
+script = ExtResource("1_ui_script")
+
+[node name="Panel" type="Panel" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="VBox" type="VBoxContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Header" type="PanelContainer" parent="Panel/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 80)
+
+[node name="HeaderVBox" type="VBoxContainer" parent="Panel/VBox/Header"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="Panel/VBox/Header/HeaderVBox"]
+layout_mode = 2
+text = "✨ Легенда Ночного Замка ✨"
+horizontal_alignment = 1
+
+[node name="RoomNameLabel" type="Label" parent="Panel/VBox/Header/HeaderVBox"]
+layout_mode = 2
+text = "Прихожая Замка"
+horizontal_alignment = 1
+
+[node name="GameView" type="Control" parent="Panel/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="DescriptionPanel" type="PanelContainer" parent="Panel/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 80)
+
+[node name="DescriptionLabel" type="RichTextLabel" parent="Panel/VBox/DescriptionPanel"]
+layout_mode = 2
+bbcode_enabled = true
+text = "Добро пожаловать в древний замок!"
+fit_content = true
+
+[node name="InventoryPanel" type="PanelContainer" parent="Panel/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 100)
+
+[node name="InventoryVBox" type="VBoxContainer" parent="Panel/VBox/InventoryPanel"]
+layout_mode = 2
+
+[node name="InventoryLabel" type="Label" parent="Panel/VBox/InventoryPanel/InventoryVBox"]
+layout_mode = 2
+text = "Инвентарь"
+horizontal_alignment = 1
+
+[node name="InventoryScroll" type="ScrollContainer" parent="Panel/VBox/InventoryPanel/InventoryVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="InventoryContainer" type="HBoxContainer" parent="Panel/VBox/InventoryPanel/InventoryVBox/InventoryScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 1
+
+[node name="ActionsPanel" type="HBoxContainer" parent="Panel/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 60)
+alignment = 1
+
+[node name="ExamineButton" type="Button" parent="Panel/VBox/ActionsPanel"]
+layout_mode = 2
+text = "ОСМОТРЕТЬ"
+
+[node name="UseButton" type="Button" parent="Panel/VBox/ActionsPanel"]
+layout_mode = 2
+text = "ИСПОЛЬЗОВАТЬ"
+
+[node name="TakeButton" type="Button" parent="Panel/VBox/ActionsPanel"]
+layout_mode = 2
+text = "ВЗЯТЬ"
